@@ -4,7 +4,7 @@ import { RevokedToken, User, Worker, tokenFingerprint } from "../models/index.js
 import { requireAuth } from "../middleware/auth.js";
 import { asyncRoute, ok, fail } from "../utils/response.js";
 const router = Router();
-const tokenFor = (user) => jwt.sign({ sub: user.id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+const tokenFor = (user) => jwt.sign({ sub: user.id, userId: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 const publicUser = (u) => ({
   id: u.id,
   user_id: u.id,
@@ -14,11 +14,15 @@ const publicUser = (u) => ({
   phone: u.phone,
   address: u.address,
   active: u.active,
+  status: u.status ?? (u.active ? "active" : "suspended"),
 });
 router.post(
   "/register",
   asyncRoute(async (req, res) => {
     const { name, email, password, phone, address } = req.body;
+    const role = req.body.role ?? "citizen";
+    if (!["citizen", "worker", "admin"].includes(role)) return fail(res, 422, "Choose a valid account type");
+    if (role === "admin") return fail(res, 403, "Administrator accounts can only be created by an administrator");
     if (
       !name?.trim() ||
       !email ||
@@ -35,8 +39,14 @@ router.post(
       password,
       phone,
       address,
-      role: "citizen",
+      role,
+      status: role === "worker" ? "pending" : "active",
+      active: role === "citizen",
     });
+    if (role === "worker") {
+      await Worker.create({ user: user._id, employeeId: `GS-P-${user.id.slice(-6).toUpperCase()}`, department: "Sanitation", availability: "OFFLINE" });
+      return ok(res, { token: null, user: publicUser(user), profile: publicUser(user), role, worker: null, pendingApproval: true }, 201);
+    }
     const safe = publicUser(user);
     ok(
       res,
@@ -48,11 +58,16 @@ router.post(
 router.post(
   "/login",
   asyncRoute(async (req, res) => {
+    const requestedRole = req.body.role;
+    if (!["citizen", "worker", "admin"].includes(requestedRole)) return fail(res, 422, "Choose your account type");
     const user = await User.findOne({ email: String(req.body.email ?? "").toLowerCase() }).select(
       "+password",
     );
-    if (!user || !user.active || !(await user.comparePassword(req.body.password ?? "")))
+    if (!user || !(await user.comparePassword(req.body.password ?? "")))
       return fail(res, 401, "Email or password is incorrect");
+    if (user.role !== requestedRole) return fail(res, 401, "Selected account type does not match this account");
+    if (user.status === "pending") return fail(res, 403, "Your worker account is awaiting administrator approval");
+    if (user.status === "suspended" || !user.active) return fail(res, 403, "This account has been suspended");
     const worker = user.role === "worker" ? await Worker.findOne({ user: user.id }) : null;
     const safe = publicUser(user);
     ok(res, {

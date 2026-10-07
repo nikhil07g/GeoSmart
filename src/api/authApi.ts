@@ -8,6 +8,7 @@ export interface AuthUser {
   role?: AppRole;
   phone?: string;
   address?: string;
+  status?: "active" | "pending" | "suspended";
 }
 export async function register(input: {
   email: string;
@@ -18,23 +19,24 @@ export async function register(input: {
   role?: AppRole;
 }) {
   const result = await api<{
-    token: string;
+    token: string | null;
     user: AuthUser;
     profile: Profile;
     role: AppRole;
     worker: null;
   }>("/auth/register", { method: "POST", body: jsonBody(input) });
-  setToken(result.token);
+  if (result.token) setToken(result.token);
+  else setToken(null);
   return result;
 }
-export async function login(email: string, password: string) {
+export async function login(email: string, password: string, role: AppRole) {
   const result = await api<{
     token: string;
     user: AuthUser;
     profile: Profile;
     role: AppRole;
     worker: unknown;
-  }>("/auth/login", { method: "POST", body: jsonBody({ email, password }) });
+  }>("/auth/login", { method: "POST", body: jsonBody({ email, password, role }) });
   setToken(result.token);
   return result;
 }

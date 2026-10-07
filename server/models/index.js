@@ -10,6 +10,7 @@ const userSchema = new Schema(
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true, select: false },
     role: { type: String, enum: ["citizen", "admin", "worker"], default: "citizen" },
+    status: { type: String, enum: ["active", "pending", "suspended"], default: "active", index: true },
     phone: String,
     address: String,
     active: { type: Boolean, default: true },

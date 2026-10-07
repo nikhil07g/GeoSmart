@@ -44,6 +44,8 @@ function AuthPage() {
   const navigate = useNavigate();
   const { user, role, loading } = useAuth();
   const [busy, setBusy] = useState(false);
+  const [loginRole, setLoginRole] = useState<AppRole>("citizen");
+  const [registerRole, setRegisterRole] = useState<AppRole>("citizen");
 
   useEffect(() => {
     if (!loading && user && role) {
@@ -56,7 +58,7 @@ function AuthPage() {
     const form = new FormData(e.currentTarget);
     setBusy(true);
     try {
-      await login(String(form.get("email")), String(form.get("password")));
+      await login(String(form.get("email")), String(form.get("password")), loginRole);
       toast.success("Welcome back");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not sign in");
@@ -76,8 +78,10 @@ function AuthPage() {
         name: String(form.get("name")),
         phone: String(form.get("phone") ?? ""),
         address: String(form.get("address") ?? ""),
+        role: registerRole,
       });
-      toast.success("Account created — you're signed in");
+      if (registerRole === "worker") toast.success("Request submitted. An administrator must approve your worker account before you can sign in.");
+      else toast.success("Account created — you're signed in");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not create account");
     } finally {
@@ -128,6 +132,12 @@ function AuthPage() {
             <TabsContent value="login" className="mt-6">
               <form onSubmit={onLogin} className="space-y-4">
                 <div>
+                  <Label htmlFor="login-role">Account type</Label>
+                  <select id="login-role" value={loginRole} onChange={(e) => setLoginRole(e.target.value as AppRole)} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2">
+                    <option value="citizen">Citizen</option><option value="admin">Municipal admin</option><option value="worker">Municipal worker</option>
+                  </select>
+                </div>
+                <div>
                   <Label htmlFor="login-email">Email</Label>
                   <Input id="login-email" name="email" type="email" required autoComplete="email" />
                 </div>
@@ -169,10 +179,10 @@ function AuthPage() {
                     <Label htmlFor="reg-phone">Phone</Label>
                     <Input id="reg-phone" name="phone" />
                   </div>
-                  <p className="flex h-9 items-center text-sm text-muted-foreground">
-                    Citizen account
-                  </p>
+                  <div><Label htmlFor="reg-role">Account type</Label><select id="reg-role" value={registerRole} onChange={(e) => setRegisterRole(e.target.value as AppRole)} className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="citizen">Citizen</option><option value="worker">Municipal worker</option><option value="admin">Municipal admin</option></select></div>
                 </div>
+                {registerRole === "worker" ? <p className="text-xs text-muted-foreground">Worker accounts require administrator approval before sign in.</p> : null}
+                {registerRole === "admin" ? <p className="text-xs text-muted-foreground">Administrator accounts can only be created by an existing administrator.</p> : null}
                 <div>
                   <Label htmlFor="reg-address">Address</Label>
                   <Input id="reg-address" name="address" />

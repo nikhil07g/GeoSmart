@@ -42,6 +42,7 @@ app.use("/api/notifications", notificationsRouter);
 app.use("/api/ai", aiRouter);
 app.use("/api/datasets", datasetsRouter);
 app.use("/api/users", usersRouter);
+app.use("/api/admin/users", usersRouter);
 app.use("/api/uploads", uploadsRouter);
 app.use((req, res) =>
   res.status(404).json({ success: false, message: `Route ${req.method} ${req.path} not found` }),

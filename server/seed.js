@@ -4,6 +4,9 @@ import { User, Worker, Complaint, ComplaintHistory, Notification, Route } from "
 
 await connectDatabase();
 const accounts = [
+  { name: "GeoSmart Administrator", email: "admin@geosmart.com", password: "GeoSmartAdmin2026!", role: "admin" },
+  { name: "GeoSmart Worker", email: "worker@geosmart.com", password: "GeoSmartDemo2026!", role: "worker" },
+  { name: "GeoSmart Citizen", email: "citizen@geosmart.com", password: "GeoSmartDemo2026!", role: "citizen" },
   {
     name: "GeoSmart Administrator",
     email: "admin@geosmart.local",
@@ -147,6 +150,6 @@ if (!(await Route.exists())) {
   }
 }
 console.log(
-  "Seed complete. Admin: admin@geosmart.local / GeoSmartAdmin2026! | Worker: worker1@geosmart.local / GeoSmartDemo2026! | Citizen: citizen1@geosmart.local / GeoSmartDemo2026!",
+  "Seed complete. Admin: admin@geosmart.com / GeoSmartAdmin2026! | Worker: worker@geosmart.com / GeoSmartDemo2026! | Citizen: citizen@geosmart.com / GeoSmartDemo2026! (legacy .local accounts remain available)",
 );
 process.exit(0);

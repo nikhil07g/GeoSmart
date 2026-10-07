@@ -50,8 +50,11 @@ You can also run `npm run server` and `npm run client` in separate terminals. `n
 | Admin   | `admin@geosmart.local`    | `GeoSmartAdmin2026!` |
 | Worker  | `worker1@geosmart.local`  | `GeoSmartDemo2026!`  |
 | Citizen | `citizen1@geosmart.local` | `GeoSmartDemo2026!`  |
+| Admin   | `admin@geosmart.com`     | `GeoSmartAdmin2026!` |
+| Worker  | `worker@geosmart.com`    | `GeoSmartDemo2026!`  |
+| Citizen | `citizen@geosmart.com`   | `GeoSmartDemo2026!`  |
 
-Public registration creates citizen accounts only. Seeded admin/worker accounts avoid letting an anonymous visitor grant themselves municipal privileges.
+Public registration creates active citizen accounts and pending worker accounts. A municipal administrator must approve a worker before sign-in. Public administrator registration is rejected; admins can create users through the protected user-management page or `POST /api/admin/users`. Existing `.local` seed accounts are preserved when seeding the added `.com` demo accounts.
 
 ## API
 
@@ -59,8 +62,8 @@ Except health, routes require `Authorization: Bearer <token>`. JSON responses us
 
 | Method     | Endpoint                                           | Access                        | Purpose                                                                         |
 | ---------- | -------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------- |
-| POST       | `/api/auth/register`                               | Public                        | Create citizen account                                                          |
-| POST       | `/api/auth/login`                                  | Public                        | Sign in and receive JWT                                                         |
+| POST       | `/api/auth/register`                               | Public                        | Create citizen account or request worker approval; admin registration is denied |
+| POST       | `/api/auth/login`                                  | Public                        | Sign in with email, password and matching selected role                         |
 | GET/PATCH  | `/api/auth/me`                                     | Authenticated                 | Read/update profile                                                             |
 | POST       | `/api/auth/logout`                                 | Authenticated                 | Client token logout acknowledgement                                             |
 | GET/POST   | `/api/complaints`                                  | Authenticated / citizen       | List visible reports / submit multipart report (`image`, optional `extraImage`) |
@@ -80,7 +83,7 @@ Except health, routes require `Authorization: Bearer <token>`. JSON responses us
 | GET        | `/api/ai/status`                                   | Admin                         | External model health / fallback status                                         |
 | POST       | `/api/ai/retrain`                                  | Admin                         | Queue external retraining integration                                           |
 | GET/POST   | `/api/datasets`                                    | Admin                         | Dataset registry, optional file upload                                          |
-| GET/PATCH  | `/api/users` `/api/users/:id`                      | Admin                         | User management; prevents disabling final admin                                 |
+| GET/POST/PATCH | `/api/admin/users` `/api/admin/users/:id`       | Admin                         | Filter/manage users, approve workers and create accounts; protects final admin  |
 | GET        | `/api/health`                                      | Public                        | API liveness                                                                    |
 
 ### External AI contract

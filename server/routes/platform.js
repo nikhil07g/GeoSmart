@@ -174,7 +174,7 @@ hotspotsRouter.get(
 );
 
 export const analyticsRouter = Router();
-analyticsRouter.use(requireAuth);
+analyticsRouter.use(requireAuth, requireRole("admin"));
 analyticsRouter.get(
   "/overview",
   asyncRoute(async (_req, res) => {
@@ -509,6 +509,18 @@ usersRouter.get(
     ),
   ),
 );
+usersRouter.post(
+  "/",
+  asyncRoute(async (req, res) => {
+    const { name, email, password, role, phone, address } = req.body;
+    if (!name?.trim() || !/^\S+@\S+\.\S+$/.test(email ?? "") || !password || password.length < 8)
+      return fail(res, 422, "Enter a name, valid email and password of at least 8 characters");
+    if (!["citizen", "worker", "admin"].includes(role)) return fail(res, 422, "Choose a valid account type");
+    const user = await User.create({ name: name.trim(), email, password, role, phone, address, status: "active", active: true });
+    if (role === "worker") await Worker.create({ user: user._id, employeeId: "GS-W-" + user.id.slice(-6).toUpperCase(), department: "Sanitation", availability: "AVAILABLE" });
+    ok(res, { id: user.id, name: user.name, email: user.email, role: user.role, status: user.status, active: user.active, created_at: user.createdAt }, 201);
+  }),
+);
 usersRouter.patch(
   "/:id",
   asyncRoute(async (req, res) => {
@@ -516,7 +528,7 @@ usersRouter.patch(
     if (!user) return fail(res, 404, "User not found");
     if (
       user.role === "admin" &&
-      (req.body.active === false || (req.body.role && req.body.role !== "admin")) &&
+      (req.body.active === false || req.body.status === "suspended" || (req.body.role && req.body.role !== "admin")) &&
       (await User.countDocuments({ role: "admin", active: true })) <= 1
     )
       return fail(res, 409, "Cannot deactivate the final administrator");
@@ -536,7 +548,15 @@ usersRouter.patch(
         );
       else await Worker.deleteOne({ user: user._id });
     }
-    if (typeof req.body.active === "boolean") user.active = req.body.active;
+    if (typeof req.body.active === "boolean") {
+      user.active = req.body.active;
+      user.status = req.body.active ? "active" : "suspended";
+    }
+    if (["active", "pending", "suspended"].includes(req.body.status)) {
+      user.status = req.body.status;
+      user.active = req.body.status === "active";
+      if (user.role === "worker") await Worker.updateOne({ user: user._id }, { $set: { availability: user.active ? "AVAILABLE" : "OFFLINE" } }, { upsert: true, setDefaultsOnInsert: true });
+    }
     await user.save();
     ok(res, {
       id: user.id,
@@ -544,6 +564,7 @@ usersRouter.patch(
       email: user.email,
       role: user.role,
       active: user.active,
+      status: user.status,
     });
   }),
 );
@@ -555,6 +576,7 @@ usersRouter.delete(
     if (user.role === "admin" && (await User.countDocuments({ role: "admin", active: true })) <= 1)
       return fail(res, 409, "Cannot remove the final administrator");
     user.active = false;
+    user.status = "suspended";
     await user.save();
     await Worker.deleteOne({ user: user._id });
     ok(res, { deleted: true, retainedForAudit: true });

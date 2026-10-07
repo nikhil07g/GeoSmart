@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { fetchMe, type AuthUser } from "@/api/authApi";
+import { fetchMe, login as apiLogin, logout as apiLogout, register as apiRegister, type AuthUser } from "@/api/authApi";
 import { getToken } from "@/api/api";
 import type { AppRole, Profile, Worker } from "@/lib/geosmart/types";
 interface AuthState {
@@ -8,6 +8,12 @@ interface AuthState {
   worker: Worker | null;
   role: AppRole | null;
   loading: boolean;
+  token: string | null;
+  isAuthenticated: boolean;
+  login: typeof apiLogin;
+  register: typeof apiRegister;
+  logout: typeof apiLogout;
+  refreshUser: () => Promise<void>;
   refresh: () => Promise<void>;
 }
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -53,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
   const value = useMemo(
-    () => ({ user, profile, worker, role, loading, refresh: load }),
+    () => ({ user, profile, worker, role, loading, token: getToken(), isAuthenticated: Boolean(getToken() && user), login: apiLogin, register: apiRegister, logout: apiLogout, refresh: load, refreshUser: load }),
     [user, profile, worker, role, loading],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

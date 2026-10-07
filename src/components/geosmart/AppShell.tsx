@@ -120,6 +120,7 @@ export function AppShell({
   const [notifOpen, setNotifOpen] = useState(false);
   const queryClient = useQueryClient();
   const items = NAV[(role ?? "citizen") as AppRole];
+  const roleLabel = role === "admin" ? "Municipal admin" : role === "worker" ? "Municipal worker" : "Citizen";
 
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications"],
@@ -166,7 +167,7 @@ export function AppShell({
           <div>
             <p className="text-sm font-bold">GeoSmart</p>
             <p className="text-[11px] uppercase tracking-wide text-sidebar-foreground/60">
-              {role} portal
+              {roleLabel} portal
             </p>
           </div>
         </div>
@@ -242,6 +243,7 @@ export function AppShell({
             <div className="hidden items-center gap-2 rounded-md border border-border px-3 py-1.5 sm:flex">
               <UserCircle className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">{profile?.name ?? "Account"}</span>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">{roleLabel}</span>
             </div>
           </div>
         </header>

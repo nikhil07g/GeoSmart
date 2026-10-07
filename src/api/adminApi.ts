@@ -17,6 +17,7 @@ export interface UserDto {
   phone?: string;
   role: string;
   active: boolean;
+  status: "active" | "pending" | "suspended";
   created_at: string;
 }
 export interface DatasetDto {
@@ -35,11 +36,14 @@ export async function listHotspots() {
 export async function listUsers() {
   return api<UserDto[]>("/users");
 }
+export async function createUser(payload: { name: string; email: string; password: string; role: string; phone?: string; address?: string }) {
+  return api<UserDto>("/admin/users", { method: "POST", body: JSON.stringify(payload) });
+}
 export async function updateUser(id: string, patch: Record<string, unknown>) {
-  return api(`/users/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+  return api(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
 }
 export async function deleteUser(id: string) {
-  return api(`/users/${id}`, { method: "DELETE" });
+  return api(`/admin/users/${id}`, { method: "DELETE" });
 }
 export async function listDatasets() {
   return api<DatasetDto[]>("/datasets");
