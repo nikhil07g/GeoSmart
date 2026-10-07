@@ -103,7 +103,7 @@ function Workers() {
           </div>
           <div>
             <Label htmlFor="w-password">Temporary password</Label>
-            <Input id="w-password" name="password" type="password" minLength={8} required />
+            <Input id="w-password" name="password" type="password" required />
           </div>
           <div>
             <Label htmlFor="w-phone">Phone</Label>

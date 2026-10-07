@@ -10,7 +10,12 @@ const userSchema = new Schema(
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true, select: false },
     role: { type: String, enum: ["citizen", "admin", "worker"], default: "citizen" },
-    status: { type: String, enum: ["active", "pending", "suspended"], default: "active", index: true },
+    status: {
+      type: String,
+      enum: ["active", "pending", "suspended"],
+      default: "active",
+      index: true,
+    },
     phone: String,
     address: String,
     active: { type: Boolean, default: true },
@@ -18,6 +23,7 @@ const userSchema = new Schema(
   { timestamps: true },
 );
 userSchema.pre("save", async function () {
+  // TODO: Strengthen password policy before production deployment.
   if (this.isModified("password")) this.password = await bcrypt.hash(this.password, 12);
 });
 userSchema.methods.comparePassword = function (value) {

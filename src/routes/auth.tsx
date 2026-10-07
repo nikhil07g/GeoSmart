@@ -80,7 +80,10 @@ function AuthPage() {
         address: String(form.get("address") ?? ""),
         role: registerRole,
       });
-      if (registerRole === "worker") toast.success("Request submitted. An administrator must approve your worker account before you can sign in.");
+      if (registerRole === "worker")
+        toast.success(
+          "Request submitted. An administrator must approve your worker account before you can sign in.",
+        );
       else toast.success("Account created — you're signed in");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not create account");
@@ -133,8 +136,15 @@ function AuthPage() {
               <form onSubmit={onLogin} className="space-y-4">
                 <div>
                   <Label htmlFor="login-role">Account type</Label>
-                  <select id="login-role" value={loginRole} onChange={(e) => setLoginRole(e.target.value as AppRole)} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2">
-                    <option value="citizen">Citizen</option><option value="admin">Municipal admin</option><option value="worker">Municipal worker</option>
+                  <select
+                    id="login-role"
+                    value={loginRole}
+                    onChange={(e) => setLoginRole(e.target.value as AppRole)}
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2"
+                  >
+                    <option value="citizen">Citizen</option>
+                    <option value="admin">Municipal admin</option>
+                    <option value="worker">Municipal worker</option>
                   </select>
                 </div>
                 <div>
@@ -179,10 +189,30 @@ function AuthPage() {
                     <Label htmlFor="reg-phone">Phone</Label>
                     <Input id="reg-phone" name="phone" />
                   </div>
-                  <div><Label htmlFor="reg-role">Account type</Label><select id="reg-role" value={registerRole} onChange={(e) => setRegisterRole(e.target.value as AppRole)} className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="citizen">Citizen</option><option value="worker">Municipal worker</option><option value="admin">Municipal admin</option></select></div>
+                  <div>
+                    <Label htmlFor="reg-role">Account type</Label>
+                    <select
+                      id="reg-role"
+                      value={registerRole}
+                      onChange={(e) => setRegisterRole(e.target.value as AppRole)}
+                      className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="citizen">Citizen</option>
+                      <option value="worker">Municipal worker</option>
+                      <option value="admin">Municipal admin</option>
+                    </select>
+                  </div>
                 </div>
-                {registerRole === "worker" ? <p className="text-xs text-muted-foreground">Worker accounts require administrator approval before sign in.</p> : null}
-                {registerRole === "admin" ? <p className="text-xs text-muted-foreground">Administrator accounts can only be created by an existing administrator.</p> : null}
+                {registerRole === "worker" ? (
+                  <p className="text-xs text-muted-foreground">
+                    Worker accounts require administrator approval before sign in.
+                  </p>
+                ) : null}
+                {registerRole === "admin" ? (
+                  <p className="text-xs text-muted-foreground">
+                    Administrator accounts can only be created by an existing administrator.
+                  </p>
+                ) : null}
                 <div>
                   <Label htmlFor="reg-address">Address</Label>
                   <Input id="reg-address" name="address" />
@@ -194,7 +224,6 @@ function AuthPage() {
                     name="password"
                     type="password"
                     required
-                    minLength={8}
                     autoComplete="new-password"
                   />
                 </div>
