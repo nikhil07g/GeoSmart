@@ -15,7 +15,7 @@ React client ── REST / Socket.IO ── Express API ── MongoDB
                                       └── local uploads (development)
 ```
 
-The application’s data and authentication APIs use MongoDB. The original Lovable/Supabase migration files are retained as historical project artifacts, but are not used by the running application.
+The application’s data and authentication APIs use MongoDB.
 
 ## Run locally
 
