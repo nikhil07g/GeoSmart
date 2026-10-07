@@ -18,9 +18,16 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — GeoSmart Waste Management" },
-      { name: "description", content: "Sign in or create a GeoSmart account to report waste, manage complaints or complete field tasks." },
+      {
+        name: "description",
+        content:
+          "Sign in or create a GeoSmart account to report waste, manage complaints or complete field tasks.",
+      },
       { property: "og:title", content: "Sign in — GeoSmart Waste Management" },
-      { property: "og:description", content: "Citizen, municipal admin and field worker access to the GeoSmart platform." },
+      {
+        property: "og:description",
+        content: "Citizen, municipal admin and field worker access to the GeoSmart platform.",
+      },
     ],
   }),
   component: AuthPage,
@@ -69,7 +76,6 @@ function AuthPage() {
         name: String(form.get("name")),
         phone: String(form.get("phone") ?? ""),
         address: String(form.get("address") ?? ""),
-        role: String(form.get("role") ?? "citizen") as AppRole,
       });
       toast.success("Account created — you're signed in");
     } catch (err) {
@@ -101,7 +107,8 @@ function AuthPage() {
             Cleaner streets start with one photo.
           </h2>
           <p className="mt-4 max-w-md text-primary-foreground/80">
-            AI classification, severity scoring and optimised crew routing — all in one municipal platform.
+            AI classification, severity scoring and optimised crew routing — all in one municipal
+            platform.
           </p>
         </div>
         <p className="text-sm text-primary-foreground/60">Smart Waste Management Platform</p>
@@ -126,12 +133,22 @@ function AuthPage() {
                 </div>
                 <div>
                   <Label htmlFor="login-password">Password</Label>
-                  <Input id="login-password" name="password" type="password" required autoComplete="current-password" />
+                  <Input
+                    id="login-password"
+                    name="password"
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                  />
                 </div>
                 <Button type="submit" className="w-full" disabled={busy}>
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Sign in
                 </Button>
-                <button type="button" onClick={onReset} className="w-full text-sm text-muted-foreground hover:text-foreground">
+                <button
+                  type="button"
+                  onClick={onReset}
+                  className="w-full text-sm text-muted-foreground hover:text-foreground"
+                >
                   Forgot your password?
                 </button>
               </form>
@@ -152,19 +169,9 @@ function AuthPage() {
                     <Label htmlFor="reg-phone">Phone</Label>
                     <Input id="reg-phone" name="phone" />
                   </div>
-                  <div>
-                    <Label htmlFor="reg-role">Account type</Label>
-                    <select
-                      id="reg-role"
-                      name="role"
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                      defaultValue="citizen"
-                    >
-                      <option value="citizen">Citizen</option>
-                      <option value="worker">Field worker</option>
-                      <option value="admin">Municipal admin</option>
-                    </select>
-                  </div>
+                  <p className="flex h-9 items-center text-sm text-muted-foreground">
+                    Citizen account
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="reg-address">Address</Label>
@@ -172,7 +179,14 @@ function AuthPage() {
                 </div>
                 <div>
                   <Label htmlFor="reg-password">Password</Label>
-                  <Input id="reg-password" name="password" type="password" required minLength={6} autoComplete="new-password" />
+                  <Input
+                    id="reg-password"
+                    name="password"
+                    type="password"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                  />
                 </div>
                 <Button type="submit" className="w-full" disabled={busy}>
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Create account

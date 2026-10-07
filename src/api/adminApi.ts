@@ -1,43 +1,59 @@
-import { supabase } from "@/integrations/supabase/client";
-
-export async function listHotspots() {
-  const { data, error } = await supabase
-    .from("hotspots")
-    .select("*")
-    .order("severity_score", { ascending: false });
-  if (error) throw new Error(error.message);
-  return data ?? [];
+import { api, uploadBody } from "@/api/api";
+export interface HotspotDto {
+  id: string;
+  name?: string;
+  latitude: number;
+  longitude: number;
+  complaintCount: number;
+  complaint_count: number;
+  severityScore: number;
+  severity_score: number;
+  radius: number;
 }
-
-export async function listUsers() {
-  const [{ data: profiles, error }, { data: roles }] = await Promise.all([
-    supabase.from("profiles").select("*").order("created_at", { ascending: false }),
-    supabase.from("user_roles").select("user_id, role"),
-  ]);
-  if (error) throw new Error(error.message);
-  const roleMap = new Map((roles ?? []).map((r) => [r.user_id, r.role]));
-  return (profiles ?? []).map((p) => ({ ...p, role: roleMap.get(p.user_id) ?? "citizen" }));
-}
-
-export async function listDatasets() {
-  const { data, error } = await supabase
-    .from("ai_datasets")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return data ?? [];
-}
-
-export async function createDataset(payload: {
+export interface UserDto {
+  id: string;
   name: string;
-  description?: string | undefined;
-  file_url?: string | null | undefined;
-  file_type?: string | undefined;
-  num_classes?: number | undefined;
-  num_images?: number | undefined;
-  uploaded_by?: string | undefined;
-}) {
-  const { data, error } = await supabase.from("ai_datasets").insert(payload as never).select().single();
-  if (error) throw new Error(error.message);
-  return data;
+  email: string;
+  phone?: string;
+  role: string;
+  active: boolean;
+  created_at: string;
+}
+export interface DatasetDto {
+  id: string;
+  name: string;
+  description?: string;
+  num_classes: number;
+  num_images: number;
+  status: string;
+  created_at: string;
+  last_trained_at?: string | null;
+}
+export async function listHotspots() {
+  return api<HotspotDto[]>("/hotspots");
+}
+export async function listUsers() {
+  return api<UserDto[]>("/users");
+}
+export async function updateUser(id: string, patch: Record<string, unknown>) {
+  return api(`/users/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+}
+export async function deleteUser(id: string) {
+  return api(`/users/${id}`, { method: "DELETE" });
+}
+export async function listDatasets() {
+  return api<DatasetDto[]>("/datasets");
+}
+export async function createDataset(payload: Record<string, unknown>) {
+  return api("/datasets", {
+    method: "POST",
+    body: uploadBody(
+      Object.fromEntries(
+        Object.entries(payload).map(([k, v]) => [
+          k,
+          v instanceof Blob ? v : v == null ? undefined : String(v),
+        ]),
+      ),
+    ),
+  });
 }

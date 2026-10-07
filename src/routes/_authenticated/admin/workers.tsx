@@ -15,9 +15,15 @@ export const Route = createFileRoute("/_authenticated/admin/workers")({
   head: () => ({
     meta: [
       { title: "Field workers — GeoSmart admin" },
-      { name: "description", content: "Manage sanitation crews, availability and workload distribution." },
+      {
+        name: "description",
+        content: "Manage sanitation crews, availability and workload distribution.",
+      },
       { property: "og:title", content: "Field workers — GeoSmart admin" },
-      { property: "og:description", content: "Crew roster with assigned, open and resolved task counts." },
+      {
+        property: "og:description",
+        content: "Crew roster with assigned, open and resolved task counts.",
+      },
     ],
   }),
   component: () => (
@@ -29,7 +35,10 @@ export const Route = createFileRoute("/_authenticated/admin/workers")({
 
 function Workers() {
   const queryClient = useQueryClient();
-  const { data = [], isLoading } = useQuery({ queryKey: ["workers", "workload"], queryFn: workerWorkload });
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["workers", "workload"],
+    queryFn: workerWorkload,
+  });
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -41,6 +50,7 @@ function Workers() {
       await createWorker({
         name: String(form.get("name")),
         email: String(form.get("email")),
+        password: String(form.get("password")),
         phone: String(form.get("phone")),
         employee_id: String(form.get("employee_id")),
         department: String(form.get("department") || "Sanitation"),
@@ -71,13 +81,39 @@ function Workers() {
       }
     >
       {open ? (
-        <form onSubmit={add} className="surface-card mb-6 grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
-          <div><Label htmlFor="w-name">Name</Label><Input id="w-name" name="name" required /></div>
-          <div><Label htmlFor="w-emp">Employee ID</Label><Input id="w-emp" name="employee_id" required /></div>
-          <div><Label htmlFor="w-dept">Department</Label><Input id="w-dept" name="department" defaultValue="Sanitation" /></div>
-          <div><Label htmlFor="w-email">Email</Label><Input id="w-email" name="email" type="email" /></div>
-          <div><Label htmlFor="w-phone">Phone</Label><Input id="w-phone" name="phone" /></div>
-          <div className="flex items-end"><Button type="submit" disabled={busy}>Save worker</Button></div>
+        <form
+          onSubmit={add}
+          className="surface-card mb-6 grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          <div>
+            <Label htmlFor="w-name">Name</Label>
+            <Input id="w-name" name="name" required />
+          </div>
+          <div>
+            <Label htmlFor="w-emp">Employee ID</Label>
+            <Input id="w-emp" name="employee_id" required />
+          </div>
+          <div>
+            <Label htmlFor="w-dept">Department</Label>
+            <Input id="w-dept" name="department" defaultValue="Sanitation" />
+          </div>
+          <div>
+            <Label htmlFor="w-email">Email</Label>
+            <Input id="w-email" name="email" type="email" required />
+          </div>
+          <div>
+            <Label htmlFor="w-password">Temporary password</Label>
+            <Input id="w-password" name="password" type="password" minLength={8} required />
+          </div>
+          <div>
+            <Label htmlFor="w-phone">Phone</Label>
+            <Input id="w-phone" name="phone" />
+          </div>
+          <div className="flex items-end">
+            <Button type="submit" disabled={busy}>
+              Save worker
+            </Button>
+          </div>
         </form>
       ) : null}
 

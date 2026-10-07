@@ -1,13 +1,29 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, FileText, Map as MapIcon, Flame, Users, Route as RouteIcon, BarChart3,
-  Database, Settings, UserCircle, Bell, LogOut, Menu, ClipboardList, PlusCircle, Recycle, X,
+  LayoutDashboard,
+  FileText,
+  Map as MapIcon,
+  Flame,
+  Users,
+  Route as RouteIcon,
+  BarChart3,
+  Database,
+  Settings,
+  UserCircle,
+  Bell,
+  LogOut,
+  Menu,
+  ClipboardList,
+  PlusCircle,
+  Recycle,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { logout } from "@/api/authApi";
-import { supabase } from "@/integrations/supabase/client";
+import { io } from "socket.io-client";
+import { getToken } from "@/api/api";
 import { listNotifications, markNotificationRead } from "@/api/notificationApi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -75,7 +91,9 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
             >
               <p className="font-medium">{n.title}</p>
               <p className="text-xs text-muted-foreground">{n.message}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">{new Date(n.created_at).toLocaleString()}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {new Date(n.created_at).toLocaleString()}
+              </p>
             </button>
           ))
         )}
@@ -84,7 +102,12 @@ function NotificationPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function AppShell({ children, title, subtitle, actions }: {
+export function AppShell({
+  children,
+  title,
+  subtitle,
+  actions,
+}: {
   children: ReactNode;
   title: string;
   subtitle?: string | undefined;
@@ -98,24 +121,33 @@ export function AppShell({ children, title, subtitle, actions }: {
   const queryClient = useQueryClient();
   const items = NAV[(role ?? "citizen") as AppRole];
 
-  const { data: notifications = [] } = useQuery({ queryKey: ["notifications"], queryFn: listNotifications });
+  const { data: notifications = [] } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: listNotifications,
+  });
   const unread = notifications.filter((n) => !n.read).length;
 
   // Real-time updates: complaints + notifications
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel("geosmart-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "complaints" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["complaints"] });
-        void queryClient.invalidateQueries({ queryKey: ["analytics"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      })
-      .subscribe();
+    const socket = io(
+      (import.meta.env["VITE_SOCKET_URL"] as string | undefined) ?? "http://localhost:5000",
+      { auth: { token: getToken() } },
+    );
+    const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey: ["complaints"] });
+      void queryClient.invalidateQueries({ queryKey: ["analytics"] });
+      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      void queryClient.invalidateQueries({ queryKey: ["hotspots"] });
+    };
+    socket.on("complaintCreated", refresh);
+    socket.on("complaintAssigned", refresh);
+    socket.on("complaintStatusUpdated", refresh);
+    socket.on("complaintResolved", refresh);
+    socket.on("newCriticalComplaint", refresh);
+    socket.on("notificationCreated", refresh);
     return () => {
-      void supabase.removeChannel(channel);
+      socket.disconnect();
     };
   }, [user, queryClient]);
 
@@ -133,7 +165,9 @@ export function AppShell({ children, title, subtitle, actions }: {
           <Recycle className="h-6 w-6 text-sidebar-primary" />
           <div>
             <p className="text-sm font-bold">GeoSmart</p>
-            <p className="text-[11px] uppercase tracking-wide text-sidebar-foreground/60">{role} portal</p>
+            <p className="text-[11px] uppercase tracking-wide text-sidebar-foreground/60">
+              {role} portal
+            </p>
           </div>
         </div>
         <nav className="space-y-1 p-3">
@@ -175,7 +209,12 @@ export function AppShell({ children, title, subtitle, actions }: {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card/95 px-4 backdrop-blur lg:px-6">
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
             <Menu className="h-5 w-5" />
           </Button>
           <div className="min-w-0 flex-1">
@@ -185,7 +224,12 @@ export function AppShell({ children, title, subtitle, actions }: {
           <div className="flex items-center gap-2">
             {actions}
             <div className="relative">
-              <Button variant="ghost" size="icon" onClick={() => setNotifOpen((v) => !v)} aria-label="Notifications">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setNotifOpen((v) => !v)}
+                aria-label="Notifications"
+              >
                 <Bell className="h-5 w-5" />
                 {unread > 0 ? (
                   <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">

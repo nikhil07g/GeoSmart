@@ -54,7 +54,7 @@ export function ImageUploader({
           className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/40 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
         >
           <ImagePlus className="h-6 w-6" />
-          Tap to upload a photo (JPG, PNG, WEBP · max 5 MB)
+          Tap to upload a photo (JPG, PNG, WEBP · max 10 MB)
         </button>
       )}
       <input

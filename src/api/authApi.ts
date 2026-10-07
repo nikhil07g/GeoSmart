@@ -1,65 +1,58 @@
-import { supabase } from "@/integrations/supabase/client";
+import { api, jsonBody, setToken } from "@/api/api";
 import type { AppRole, Profile } from "@/lib/geosmart/types";
-
+export interface AuthUser {
+  id: string;
+  user_id: string;
+  email: string;
+  name: string;
+  role?: AppRole;
+  phone?: string;
+  address?: string;
+}
 export async function register(input: {
   email: string;
   password: string;
   name: string;
   phone?: string;
   address?: string;
-  role: AppRole;
+  role?: AppRole;
 }) {
-  const { data, error } = await supabase.auth.signUp({
-    email: input.email,
-    password: input.password,
-    options: {
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
-      data: {
-        name: input.name,
-        phone: input.phone ?? "",
-        address: input.address ?? "",
-        role: input.role,
-      },
-    },
-  });
-  if (error) throw new Error(error.message);
-  return data;
+  const result = await api<{
+    token: string;
+    user: AuthUser;
+    profile: Profile;
+    role: AppRole;
+    worker: null;
+  }>("/auth/register", { method: "POST", body: jsonBody(input) });
+  setToken(result.token);
+  return result;
 }
-
 export async function login(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(error.message);
-  return data;
+  const result = await api<{
+    token: string;
+    user: AuthUser;
+    profile: Profile;
+    role: AppRole;
+    worker: unknown;
+  }>("/auth/login", { method: "POST", body: jsonBody({ email, password }) });
+  setToken(result.token);
+  return result;
 }
-
 export async function logout() {
-  await supabase.auth.signOut();
+  try {
+    await api("/auth/logout", { method: "POST" });
+  } finally {
+    setToken(null);
+  }
 }
-
-export async function sendPasswordReset(email: string) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/auth/callback`,
-  });
-  if (error) throw new Error(error.message);
+export async function sendPasswordReset(_email: string) {
+  throw new Error("Password reset is not configured. Contact your municipal administrator.");
 }
-
-/** GET /api/auth/me equivalent. */
-export async function fetchMe(userId: string) {
-  const [{ data: profile }, { data: roles }, { data: worker }] = await Promise.all([
-    supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
-    supabase.from("user_roles").select("role").eq("user_id", userId),
-    supabase.from("workers").select("*").eq("user_id", userId).maybeSingle(),
-  ]);
-  const roleList = (roles ?? []).map((r) => r.role as AppRole);
-  const role: AppRole = roleList.includes("admin")
-    ? "admin"
-    : roleList.includes("worker")
-      ? "worker"
-      : "citizen";
-  return { profile: profile ?? null, role, worker: worker ?? null };
+export async function fetchMe(_userId?: string) {
+  return api<{ user: AuthUser; profile: Profile; role: AppRole; worker: unknown }>("/auth/me");
 }
-
-export async function updateProfile(userId: string, patch: Partial<Profile>) {
-  const { error } = await supabase.from("profiles").update(patch).eq("user_id", userId);
-  if (error) throw new Error(error.message);
+export async function updateProfile(_userId: string, patch: Partial<Profile>) {
+  const result = await api("/auth/me", { method: "PATCH", body: jsonBody(patch) });
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("geosmart-auth-change"));
+  return result;
 }

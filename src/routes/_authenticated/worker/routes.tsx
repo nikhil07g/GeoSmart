@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Route as RouteIcon, Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/geosmart/AppShell";
@@ -20,7 +19,10 @@ export const Route = createFileRoute("/_authenticated/worker/routes")({
   head: () => ({
     meta: [
       { title: "Collection route — GeoSmart crew" },
-      { name: "description", content: "An optimised pickup sequence from your live location across all assigned stops." },
+      {
+        name: "description",
+        content: "An optimised pickup sequence from your live location across all assigned stops.",
+      },
       { property: "og:title", content: "Collection route — GeoSmart crew" },
       { property: "og:description", content: "Turn-by-turn optimised waste collection route." },
     ],
@@ -34,7 +36,6 @@ export const Route = createFileRoute("/_authenticated/worker/routes")({
 
 function WorkerRoute() {
   const { user } = useAuth();
-  const optimize = useServerFn(optimizeRoute);
   const { data: workers = [] } = useQuery({ queryKey: ["workers"], queryFn: listWorkers });
   const me = workers.find((w) => w.user_id === user?.id);
 
@@ -72,9 +73,14 @@ function WorkerRoute() {
     try {
       const start = position
         ? { latitude: position[0], longitude: position[1] }
-        : { latitude: me?.current_lat ?? DEFAULT_CENTER[0], longitude: me?.current_lng ?? DEFAULT_CENTER[1] };
-      const res = (await optimize({
-        data: { workerId: me?.id, startLocation: start, complaintIds: open.map((c) => c.id) },
+        : {
+            latitude: me?.current_lat ?? DEFAULT_CENTER[0],
+            longitude: me?.current_lng ?? DEFAULT_CENTER[1],
+          };
+      const res = (await optimizeRoute({
+        workerId: me?.id,
+        startLocation: start,
+        complaintIds: open.map((c) => c.id),
       })) as OptimizedRoute;
       setResult(res);
       toast.success(`Route ready · ${(res.distanceMeters / 1000).toFixed(1)} km`);
@@ -91,34 +97,57 @@ function WorkerRoute() {
       subtitle={position ? "Live location tracking on" : "Enable location for accurate routing"}
       actions={
         <Button size="sm" onClick={() => void run()} disabled={busy}>
-          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RouteIcon className="mr-2 h-4 w-4" />}
+          {busy ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RouteIcon className="mr-2 h-4 w-4" />
+          )}
           Optimise route
         </Button>
       }
     >
       {open.length === 0 ? (
-        <EmptyState title="No stops to plan" description="Once tasks are assigned to you, build an optimised route here." />
+        <EmptyState
+          title="No stops to plan"
+          description="Once tasks are assigned to you, build an optimised route here."
+        />
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <MapView
               className="h-[520px] w-full rounded-lg"
-              center={position ?? (open[0] ? [open[0].latitude, open[0].longitude] : DEFAULT_CENTER)}
+              center={
+                position ?? (open[0] ? [open[0].latitude, open[0].longitude] : DEFAULT_CENTER)
+              }
               zoom={13}
               polyline={result?.coordinates}
-              markers={(result?.ordered ?? []).length > 0
-                ? result!.ordered.map((s) => ({ id: s.id, lat: s.lat, lng: s.lng, title: s.title, order: s.order }))
-                : open.map((c) => ({
-                    id: c.id, lat: c.latitude, lng: c.longitude, title: c.title,
-                    subtitle: c.address ?? undefined, severity: c.severity, status: c.status,
-                  }))}
+              markers={
+                (result?.ordered ?? []).length > 0
+                  ? result!.ordered.map((s) => ({
+                      id: s.id,
+                      lat: s.lat,
+                      lng: s.lng,
+                      title: s.title,
+                      order: s.order,
+                    }))
+                  : open.map((c) => ({
+                      id: c.id,
+                      lat: c.latitude,
+                      lng: c.longitude,
+                      title: c.title,
+                      subtitle: c.address ?? undefined,
+                      severity: c.severity,
+                      status: c.status,
+                    }))
+              }
             />
           </div>
           <div className="surface-card p-4">
             {result ? (
               <>
                 <p className="text-sm">
-                  <strong>{(result.distanceMeters / 1000).toFixed(2)} km</strong> · ~{result.durationMinutes} min
+                  <strong>{(result.distanceMeters / 1000).toFixed(2)} km</strong> · ~
+                  {result.durationMinutes} min
                 </p>
                 <p className="text-xs text-muted-foreground">Algorithm: {result.algorithm}</p>
                 <ol className="mt-3 space-y-2 text-sm">
@@ -135,7 +164,8 @@ function WorkerRoute() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <Navigation className="mr-1 inline h-3 w-3" />Navigate
+                          <Navigation className="mr-1 inline h-3 w-3" />
+                          Navigate
                         </a>
                       </span>
                     </li>
@@ -144,7 +174,8 @@ function WorkerRoute() {
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {open.length} open stops. Tap “Optimise route” to compute the shortest sequence from your current position.
+                {open.length} open stops. Tap “Optimise route” to compute the shortest sequence from
+                your current position.
               </p>
             )}
           </div>

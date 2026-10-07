@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { Route as RouteIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/geosmart/AppShell";
@@ -21,7 +20,11 @@ export const Route = createFileRoute("/_authenticated/admin/routes")({
   head: () => ({
     meta: [
       { title: "Route planner — GeoSmart admin" },
-      { name: "description", content: "Build the shortest collection route across selected complaints with A* and 2-opt optimisation." },
+      {
+        name: "description",
+        content:
+          "Build the shortest collection route across selected complaints with A* and 2-opt optimisation.",
+      },
       { property: "og:title", content: "Route planner — GeoSmart admin" },
       { property: "og:description", content: "Optimised municipal waste collection routing." },
     ],
@@ -34,7 +37,6 @@ export const Route = createFileRoute("/_authenticated/admin/routes")({
 });
 
 function RoutePlanner() {
-  const optimize = useServerFn(optimizeRoute);
   const { data: complaints = [] } = useQuery({
     queryKey: ["complaints", "routing"],
     queryFn: () => listComplaints({ sort: "severity" }),
@@ -49,10 +51,15 @@ function RoutePlanner() {
   const open = complaints.filter((c) => c.status !== "RESOLVED" && c.status !== "REJECTED");
 
   const toggle = (id: string) =>
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : s.length >= 25 ? s : [...s, id]));
+    setSelected((s) =>
+      s.includes(id) ? s.filter((x) => x !== id) : s.length >= 25 ? s : [...s, id],
+    );
 
   const run = async () => {
-    if (selected.length === 0) { toast.error("Select at least one complaint"); return; }
+    if (selected.length === 0) {
+      toast.error("Select at least one complaint");
+      return;
+    }
     const worker = workers.find((w) => w.id === workerId);
     const start = {
       latitude: worker?.current_lat ?? DEFAULT_CENTER[0],
@@ -60,8 +67,10 @@ function RoutePlanner() {
     };
     setBusy(true);
     try {
-      const res = (await optimize({
-        data: { workerId: workerId || undefined, startLocation: start, complaintIds: selected },
+      const res = (await optimizeRoute({
+        workerId: workerId || undefined,
+        startLocation: start,
+        complaintIds: selected,
       })) as OptimizedRoute;
       setResult(res);
       toast.success(`Route optimised with ${res.algorithm}`);
@@ -85,15 +94,26 @@ function RoutePlanner() {
               className="mt-1 h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
             >
               <option value="">City depot (default)</option>
-              {workers.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+              {workers.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
             </select>
             <Button className="mt-3 w-full" onClick={run} disabled={busy}>
-              {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RouteIcon className="mr-2 h-4 w-4" />}
+              {busy ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RouteIcon className="mr-2 h-4 w-4" />
+              )}
               Optimise {selected.length} stops
             </Button>
             {result ? (
               <div className="mt-4 rounded-md bg-muted p-3 text-sm">
-                <p><strong>{(result.distanceMeters / 1000).toFixed(2)} km</strong> · ~{result.durationMinutes} min</p>
+                <p>
+                  <strong>{(result.distanceMeters / 1000).toFixed(2)} km</strong> · ~
+                  {result.durationMinutes} min
+                </p>
                 <p className="text-xs text-muted-foreground">Algorithm: {result.algorithm}</p>
               </div>
             ) : null}
@@ -101,15 +121,32 @@ function RoutePlanner() {
 
           <div className="surface-card max-h-[420px] overflow-y-auto p-2">
             {open.length === 0 ? (
-              <EmptyState title="No open complaints" description="Everything is resolved — nothing to route." />
+              <EmptyState
+                title="No open complaints"
+                description="Everything is resolved — nothing to route."
+              />
             ) : (
               open.map((c) => (
-                <label key={c.id} className="flex cursor-pointer items-start gap-3 rounded-md p-3 hover:bg-muted/60">
-                  <input type="checkbox" className="mt-1" checked={selected.includes(c.id)} onChange={() => toggle(c.id)} />
+                <label
+                  key={c.id}
+                  className="flex cursor-pointer items-start gap-3 rounded-md p-3 hover:bg-muted/60"
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={selected.includes(c.id)}
+                    onChange={() => toggle(c.id)}
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{c.title}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{c.address ?? c.complaint_code}</span>
-                    <SeverityBadge className="mt-1" severity={c.severity} score={c.severity_score} />
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {c.address ?? c.complaint_code}
+                    </span>
+                    <SeverityBadge
+                      className="mt-1"
+                      severity={c.severity}
+                      score={c.severity_score}
+                    />
                   </span>
                 </label>
               ))
@@ -123,10 +160,23 @@ function RoutePlanner() {
             center={result?.coordinates[0] ?? DEFAULT_CENTER}
             zoom={12}
             polyline={result?.coordinates}
-            markers={(result?.ordered ?? open.filter((c) => selected.includes(c.id)).map((c) => ({
-              id: c.id, lat: c.latitude, lng: c.longitude, title: c.title, order: undefined,
-            }))).map((s) => ({
-              id: s.id, lat: s.lat, lng: s.lng, title: s.title, order: (s as { order?: number }).order,
+            markers={(
+              result?.ordered ??
+              open
+                .filter((c) => selected.includes(c.id))
+                .map((c) => ({
+                  id: c.id,
+                  lat: c.latitude,
+                  lng: c.longitude,
+                  title: c.title,
+                  order: undefined,
+                }))
+            ).map((s) => ({
+              id: s.id,
+              lat: s.lat,
+              lng: s.lng,
+              title: s.title,
+              order: (s as { order?: number }).order,
             }))}
           />
           {result ? (
