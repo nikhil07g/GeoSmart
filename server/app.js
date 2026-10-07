@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import mongoose from "mongoose";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import auth from "./routes/auth.js";
@@ -18,12 +19,17 @@ import {
   uploadsRouter,
 } from "./routes/platform.js";
 const app = express();
+const allowedOrigins = [
+  "http://localhost:8080",
+  "http://localhost:5173",
+  ...(process.env.CLIENT_URL || "").split(",").map((origin) => origin.trim()),
+].filter(Boolean);
 app.disable("x-powered-by");
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(
   cors({
-    origin: process.env.CLIENT_URL?.split(",") ?? "http://localhost:5173",
-    credentials: false,
+    origin: allowedOrigins,
+    credentials: true,
   }),
 );
 app.use(express.json({ limit: "2mb" }));
@@ -31,8 +37,33 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan("tiny"));
 const here = path.dirname(fileURLToPath(import.meta.url));
 app.use("/uploads", express.static(path.join(here, "uploads"), { maxAge: "7d", immutable: true }));
-app.get("/api/health", (_req, res) => res.json({ success: true, data: { status: "ok" } }));
-app.use("/api/auth", auth);
+app.get("/api/health", (_req, res) =>
+  res.json({
+    success: true,
+    data: { status: "ok", database: app.locals.databaseReady ? "connected" : "disconnected" },
+  }),
+);
+app.use("/api", (req, res, next) => {
+  if (!app.locals.databaseReady)
+    return res.status(503).json({
+      success: false,
+      message: "Database connection failed. Check MONGO_URI and make sure MongoDB is running.",
+    });
+  next();
+});
+app.use(
+  "/api/auth",
+  (req, res, next) => {
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 24)
+      return res.status(503).json({
+        success: false,
+        message:
+          "JWT_SECRET is missing or too short. Configure a random secret of at least 24 characters.",
+      });
+    next();
+  },
+  auth,
+);
 app.use("/api/complaints", complaints);
 app.use("/api/workers", workersRouter);
 app.use("/api/hotspots", hotspotsRouter);
@@ -49,6 +80,11 @@ app.use((req, res) =>
 );
 app.use((err, _req, res, _next) => {
   console.error(err);
+  if (mongoose.connection.readyState !== 1)
+    return res.status(503).json({
+      success: false,
+      message: "Database connection failed. Check MONGO_URI and make sure MongoDB is running.",
+    });
   if (err.code === 11000)
     return res
       .status(409)

@@ -21,13 +21,13 @@ The application’s data and authentication APIs use MongoDB.
 
 Requirements: Node.js 20+, npm, and MongoDB Community or MongoDB Atlas.
 
-1. Copy `.env.example` to `.env` and set `MONGO_URI` and a unique `JWT_SECRET` (at least 24 characters). `AI_SERVICE_URL` is optional.
+1. Add the settings from `.env.example` to `.env` and set `MONGO_URI` to a running MongoDB instance and `JWT_SECRET` to a unique random secret (at least 24 characters). Preserve any existing provider keys in `.env`. `AI_SERVICE_URL` is optional.
 2. Install dependencies: `npm install`.
 3. Create the demo accounts and reports: `npm run seed`.
 4. Start the API and Vite client together: `npm run dev`.
-5. Open `http://localhost:5173`. The API health check is `http://localhost:5000/api/health`.
+5. Open `http://localhost:8080/auth`. The API health check is `http://localhost:5000/api/health`.
 
-You can also run `npm run server` and `npm run client` in separate terminals. `npm run build` creates the web production build. The Express service runs with `npm start`.
+You can also run `npm run server` and `npm run client` in separate terminals. The client is served on port `8080`; Express listens on port `5000`. `npm run build` creates the web production build. The Express service runs with `npm start`. If MongoDB is unavailable, Express still starts and returns a JSON `503` error for database-backed requests; registration requires a live database.
 
 ### Environment
 
@@ -50,9 +50,9 @@ You can also run `npm run server` and `npm run client` in separate terminals. `n
 | Admin   | `admin@geosmart.local`    | `GeoSmartAdmin2026!` |
 | Worker  | `worker1@geosmart.local`  | `GeoSmartDemo2026!`  |
 | Citizen | `citizen1@geosmart.local` | `GeoSmartDemo2026!`  |
-| Admin   | `admin@geosmart.com`     | `GeoSmartAdmin2026!` |
-| Worker  | `worker@geosmart.com`    | `GeoSmartDemo2026!`  |
-| Citizen | `citizen@geosmart.com`   | `GeoSmartDemo2026!`  |
+| Admin   | `admin@geosmart.com`      | `GeoSmartAdmin2026!` |
+| Worker  | `worker@geosmart.com`     | `GeoSmartDemo2026!`  |
+| Citizen | `citizen@geosmart.com`    | `GeoSmartDemo2026!`  |
 
 Public registration creates active citizen accounts and pending worker accounts. A municipal administrator must approve a worker before sign-in. Public administrator registration is rejected; admins can create users through the protected user-management page or `POST /api/admin/users`. Existing `.local` seed accounts are preserved when seeding the added `.com` demo accounts.
 
@@ -60,31 +60,31 @@ Public registration creates active citizen accounts and pending worker accounts.
 
 Except health, routes require `Authorization: Bearer <token>`. JSON responses use `{ "success": true, "data": ... }`; errors use `{ "success": false, "message": "..." }`.
 
-| Method     | Endpoint                                           | Access                        | Purpose                                                                         |
-| ---------- | -------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------- |
-| POST       | `/api/auth/register`                               | Public                        | Create citizen account or request worker approval; admin registration is denied |
-| POST       | `/api/auth/login`                                  | Public                        | Sign in with email, password and matching selected role                         |
-| GET/PATCH  | `/api/auth/me`                                     | Authenticated                 | Read/update profile                                                             |
-| POST       | `/api/auth/logout`                                 | Authenticated                 | Client token logout acknowledgement                                             |
-| GET/POST   | `/api/complaints`                                  | Authenticated / citizen       | List visible reports / submit multipart report (`image`, optional `extraImage`) |
-| GET        | `/api/complaints/nearby?latitude=&longitude=`      | Citizen/admin                 | Nearby unresolved reports                                                       |
-| GET        | `/api/complaints/:id`                              | Owner, admin, assigned worker | Complaint detail                                                                |
-| GET        | `/api/complaints/:id/history`                      | Owner, admin, assigned worker | Status timeline                                                                 |
-| PATCH      | `/api/complaints/:id/status`                       | Admin/assigned worker         | Validated status transition and history entry                                   |
-| PATCH      | `/api/complaints/:id/assign`                       | Admin                         | Assign worker and notify them                                                   |
-| POST       | `/api/complaints/:id/resolution`                   | Assigned worker               | Attach resolution image/comment and resolve                                     |
-| GET        | `/api/workers`                                     | Authenticated                 | Admin worker list or worker’s own profile                                       |
-| POST/PATCH | `/api/workers` `/api/workers/:id`                  | Admin                         | Manage crew accounts and availability                                           |
-| GET        | `/api/hotspots?days=7`                             | Authenticated                 | Geographic report clusters                                                      |
-| POST       | `/api/routes/optimize`                             | Admin/worker                  | Order up to 25 report stops and save route                                      |
-| GET        | `/api/analytics/overview`                          | Authenticated                 | Dashboard aggregates and chart series                                           |
-| GET/PATCH  | `/api/notifications` `/api/notifications/:id/read` | Authenticated                 | List and mark notifications read                                                |
-| POST       | `/api/ai/classify`                                 | Authenticated                 | Classify multipart image                                                        |
-| GET        | `/api/ai/status`                                   | Admin                         | External model health / fallback status                                         |
-| POST       | `/api/ai/retrain`                                  | Admin                         | Queue external retraining integration                                           |
-| GET/POST   | `/api/datasets`                                    | Admin                         | Dataset registry, optional file upload                                          |
-| GET/POST/PATCH | `/api/admin/users` `/api/admin/users/:id`       | Admin                         | Filter/manage users, approve workers and create accounts; protects final admin  |
-| GET        | `/api/health`                                      | Public                        | API liveness                                                                    |
+| Method         | Endpoint                                           | Access                        | Purpose                                                                         |
+| -------------- | -------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------- |
+| POST           | `/api/auth/register`                               | Public                        | Create citizen account or request worker approval; admin registration is denied |
+| POST           | `/api/auth/login`                                  | Public                        | Sign in with email, password and matching selected role                         |
+| GET/PATCH      | `/api/auth/me`                                     | Authenticated                 | Read/update profile                                                             |
+| POST           | `/api/auth/logout`                                 | Authenticated                 | Client token logout acknowledgement                                             |
+| GET/POST       | `/api/complaints`                                  | Authenticated / citizen       | List visible reports / submit multipart report (`image`, optional `extraImage`) |
+| GET            | `/api/complaints/nearby?latitude=&longitude=`      | Citizen/admin                 | Nearby unresolved reports                                                       |
+| GET            | `/api/complaints/:id`                              | Owner, admin, assigned worker | Complaint detail                                                                |
+| GET            | `/api/complaints/:id/history`                      | Owner, admin, assigned worker | Status timeline                                                                 |
+| PATCH          | `/api/complaints/:id/status`                       | Admin/assigned worker         | Validated status transition and history entry                                   |
+| PATCH          | `/api/complaints/:id/assign`                       | Admin                         | Assign worker and notify them                                                   |
+| POST           | `/api/complaints/:id/resolution`                   | Assigned worker               | Attach resolution image/comment and resolve                                     |
+| GET            | `/api/workers`                                     | Authenticated                 | Admin worker list or worker’s own profile                                       |
+| POST/PATCH     | `/api/workers` `/api/workers/:id`                  | Admin                         | Manage crew accounts and availability                                           |
+| GET            | `/api/hotspots?days=7`                             | Authenticated                 | Geographic report clusters                                                      |
+| POST           | `/api/routes/optimize`                             | Admin/worker                  | Order up to 25 report stops and save route                                      |
+| GET            | `/api/analytics/overview`                          | Authenticated                 | Dashboard aggregates and chart series                                           |
+| GET/PATCH      | `/api/notifications` `/api/notifications/:id/read` | Authenticated                 | List and mark notifications read                                                |
+| POST           | `/api/ai/classify`                                 | Authenticated                 | Classify multipart image                                                        |
+| GET            | `/api/ai/status`                                   | Admin                         | External model health / fallback status                                         |
+| POST           | `/api/ai/retrain`                                  | Admin                         | Queue external retraining integration                                           |
+| GET/POST       | `/api/datasets`                                    | Admin                         | Dataset registry, optional file upload                                          |
+| GET/POST/PATCH | `/api/admin/users` `/api/admin/users/:id`          | Admin                         | Filter/manage users, approve workers and create accounts; protects final admin  |
+| GET            | `/api/health`                                      | Public                        | API liveness                                                                    |
 
 ### External AI contract
 

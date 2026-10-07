@@ -8,12 +8,15 @@ import jwt from "jsonwebtoken";
 import { User } from "./models/index.js";
 
 const port = Number(process.env.PORT || 5000);
-if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 24)
-  throw new Error("Set JWT_SECRET to a random secret of at least 24 characters");
-await connectDatabase();
+app.locals.databaseReady = false;
 const server = http.createServer(app);
+const allowedOrigins = [
+  "http://localhost:8080",
+  "http://localhost:5173",
+  ...(process.env.CLIENT_URL || "").split(",").map((origin) => origin.trim()),
+].filter(Boolean);
 const io = new Server(server, {
-  cors: { origin: process.env.CLIENT_URL?.split(",") ?? "http://localhost:5173" },
+  cors: { origin: allowedOrigins, credentials: true },
 });
 io.use(async (socket, next) => {
   try {
@@ -34,5 +37,20 @@ io.on("connection", (socket) => {
   socket.join(`role:${socket.data.role}`);
 });
 app.set("io", io);
-server.listen(port, () => console.log(`GeoSmart API listening on http://localhost:${port}`));
+server.listen(port, () => {
+  console.log(`GeoSmart API listening on http://localhost:${port}`);
+  console.log(`Registration endpoint: POST http://localhost:${port}/api/auth/register`);
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 24)
+    console.error(
+      "JWT_SECRET is missing or too short; configure a random secret of at least 24 characters.",
+    );
+  connectDatabase()
+    .then(() => {
+      app.locals.databaseReady = true;
+    })
+    .catch((error) => {
+      app.locals.databaseReady = false;
+      console.error("MongoDB connection failed:", error.message);
+    });
+});
 process.on("SIGINT", () => server.close(() => process.exit(0)));
