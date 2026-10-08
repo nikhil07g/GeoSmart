@@ -60,6 +60,7 @@ function ReportPage() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [ai, setAi] = useState<AiClassification | null>(null);
+  const [aiUnavailable, setAiUnavailable] = useState(false);
   const [classifying, setClassifying] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [duplicates, setDuplicates] = useState<Duplicate[]>([]);
@@ -69,13 +70,14 @@ function ReportPage() {
     try {
       const result = (await classifyWasteImage(selected)) as AiClassification;
       setAi(result);
+      setAiUnavailable(false);
       setCategory(result.category);
       if (!title) setTitle(`${result.category} reported`);
       toast.success(`AI detected ${result.category} (${result.confidence}% confidence)`);
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Classification failed — pick a category manually",
-      );
+    } catch {
+      setAi(null);
+      setAiUnavailable(true);
+      toast.error("AI classification unavailable. Choose the waste category manually.");
     } finally {
       setClassifying(false);
     }
@@ -84,6 +86,7 @@ function ReportPage() {
   const onSelectImage = (next: File | null) => {
     setFile(next);
     setAi(null);
+    setAiUnavailable(false);
     if (next) void runClassification(next);
   };
 
@@ -166,6 +169,12 @@ function ReportPage() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   You can override the category below if the suggestion looks wrong.
                 </p>
+              </div>
+            ) : null}
+            {aiUnavailable && !classifying ? (
+              <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-sm text-muted-foreground">
+                AI classification unavailable. Choose the waste category manually; you can still
+                submit your report.
               </div>
             ) : null}
           </div>

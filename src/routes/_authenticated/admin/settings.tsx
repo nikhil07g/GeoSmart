@@ -44,12 +44,12 @@ function Settings() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Mode</dt>
-              <dd>{data?.mode ?? "mock"}</dd>
+              <dd>{data?.mode ?? "unconfigured"}</dd>
             </div>
           </dl>
           <p className="mt-3 text-xs text-muted-foreground">
-            Point <code>AI_SERVICE_URL</code> at your deployed model endpoint exposing{" "}
-            <code>/predict</code>,<code> /health</code> and <code>/retrain</code>.
+            Point <code>AI_SERVICE_URL</code> at the private model API exposing{" "}
+            <code>/predict</code> and <code>/health</code>.
           </p>
         </section>
 

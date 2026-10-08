@@ -147,7 +147,18 @@ router.post(
       return fail(res, 422, "Title and valid coordinates are required");
     if (!req.files?.image?.[0]) return fail(res, 422, "A JPG, PNG or WEBP image is required");
     const photoPath = req.files.image[0].path;
-    const classification = await classifyImage(photoPath);
+    let classification;
+    try {
+      classification = await classifyImage(photoPath);
+    } catch {
+      classification = {
+        category: null,
+        confidence: 0,
+        rawClass: null,
+        source: "unavailable",
+        available: false,
+      };
+    }
     const radius = Number(process.env.DUPLICATE_RADIUS_METERS || 100);
     const nearby = await Complaint.find({
       status: { $nin: ["RESOLVED", "REJECTED"] },
@@ -162,10 +173,10 @@ router.post(
     const category =
       req.body.category && req.body.category !== "Mixed Waste"
         ? req.body.category
-        : classification.category;
+        : (classification.category ?? "Mixed Waste");
     const severityResult = scoreSeverity({
       category,
-      confidence: classification.confidence,
+      confidence: classification.confidence ?? 0,
       duplicateCount: nearby[0] ? nearby[0].duplicateCount + 1 : 0,
       nearbyCount: nearby.length,
     });
@@ -176,9 +187,9 @@ router.post(
       imageUrl: publicFile(req.files.image[0]),
       extraImageUrl: publicFile(req.files.extraImage?.[0]),
       category,
-      aiCategory: classification.category,
-      aiConfidence: classification.confidence,
-      aiRawClass: classification.rawClass,
+      aiCategory: classification.category ?? undefined,
+      aiConfidence: classification.available ? classification.confidence : undefined,
+      aiRawClass: classification.rawClass ?? undefined,
       latitude: lat,
       longitude: lng,
       location: { type: "Point", coordinates: [lng, lat] },

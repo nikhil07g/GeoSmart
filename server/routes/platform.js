@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { unlink } from "node:fs/promises";
 import {
   Complaint,
   ComplaintHistory,
@@ -372,14 +373,26 @@ notificationsRouter.patch(
 
 export const aiRouter = Router();
 aiRouter.use(requireAuth);
+aiRouter.get(
+  "/health",
+  asyncRoute(async (_req, res) => {
+    ok(res, await serviceStatus());
+  }),
+);
 aiRouter.post(
   "/classify",
   upload.single("image"),
   asyncRoute(async (req, res) => {
     if (!req.file) return fail(res, 422, "Image is required");
-    const result = await classifyImage(req.file.path);
-    const { scoreSeverity } = await import("../services/severityService.js");
-    ok(res, { ...result, ...scoreSeverity(result) });
+    try {
+      const result = await classifyImage(req.file.path);
+      const { scoreSeverity } = await import("../services/severityService.js");
+      ok(res, { ...result, ...scoreSeverity(result) });
+    } catch {
+      return fail(res, 503, "AI classification service unavailable");
+    } finally {
+      await unlink(req.file.path).catch(() => {});
+    }
   }),
 );
 aiRouter.get(

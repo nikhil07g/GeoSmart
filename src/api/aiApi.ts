@@ -11,7 +11,7 @@ export async function classifyWasteImage(file: File) {
 }
 export async function getAiServiceStatus() {
   const s = await api<{ available: boolean; mode: string }>("/ai/status");
-  return { configured: s.mode !== "mock", reachable: s.available, mode: s.mode };
+  return { configured: s.mode !== "unconfigured", reachable: s.available, mode: s.mode };
 }
 export async function requestRetraining(input: { datasetId: string }) {
   return api("/ai/retrain", { method: "POST", body: JSON.stringify(input) });

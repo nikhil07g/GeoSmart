@@ -20,7 +20,8 @@ export interface AiClassification {
   confidence: number;
   severity: string;
   rawClass: string;
-  source: "ai-service" | "mock";
+  source: "ai-service" | "unavailable";
+  available?: boolean;
 }
 
 export interface OptimizedRoute {

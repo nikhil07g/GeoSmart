@@ -104,7 +104,7 @@ function DatasetPage() {
         </span>
         <span className="text-muted-foreground">
           Set the <code>AI_SERVICE_URL</code> secret to point at your deployed model; GeoSmart falls
-          back to a deterministic mock classifier otherwise.
+          to manual category selection if the model service is unavailable.
         </span>
       </div>
 

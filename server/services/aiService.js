@@ -1,66 +1,63 @@
 import axios from "axios";
-import { randomInt } from "node:crypto";
 import FormData from "form-data";
 import { createReadStream } from "node:fs";
 
-const categoryMap = {
-  plastic: "Plastic Waste",
-  organic: "Organic Waste",
-  biodegradable: "Organic Waste",
-  ewaste: "E-Waste",
-  electronic: "E-Waste",
-  construction: "Construction Waste",
+const modelCategories = {
+  cardboard: "Paper Waste",
   glass: "Glass Waste",
-  paper: "Paper Waste",
   metal: "Metal Waste",
-  dumping: "Illegal Dumping",
-  illegal_dumping: "Illegal Dumping",
-  mixed: "Mixed Waste",
+  paper: "Paper Waste",
+  plastic: "Plastic Waste",
+  trash: "Mixed Waste",
 };
 
+const serviceBase = () => process.env.AI_SERVICE_URL?.trim().replace(/\/$/, "");
+
+function normalizePrediction(data) {
+  const rawClass = String(data?.class ?? data?.prediction ?? "").trim();
+  const classKey = rawClass.toLowerCase();
+  const category = modelCategories[classKey];
+  if (!category) throw new Error("AI model returned an unsupported class");
+
+  const rawConfidence = Number(data?.confidence);
+  if (!Number.isFinite(rawConfidence) || rawConfidence < 0 || rawConfidence > 100)
+    throw new Error("AI model returned an invalid confidence");
+  const confidence = Math.round(rawConfidence <= 1 ? rawConfidence * 100 : rawConfidence);
+  return { category, confidence, rawClass, source: "ai-service", available: true };
+}
+
 export async function classifyImage(filePath) {
-  const base = process.env.AI_SERVICE_URL;
-  if (base) {
-    try {
-      const form = new FormData();
-      form.append("image", createReadStream(filePath));
-      const { data } = await axios.post(`${base.replace(/\/$/, "")}/predict`, form, {
-        headers: form.getHeaders(),
-        timeout: 12000,
-      });
-      const label = String(data.class ?? "mixed")
-        .toLowerCase()
-        .replace(/[\s-]/g, "");
-      const rawConfidence = Number(data.confidence ?? 0.5);
-      const confidence = Math.max(
-        0,
-        Math.min(100, Math.round((Number.isFinite(rawConfidence) ? rawConfidence : 0.5) * 100)),
-      );
-      return {
-        category: categoryMap[label] ?? "Mixed Waste",
-        confidence,
-        rawClass: String(data.class ?? "mixed"),
-        source: "ai-service",
-      };
-    } catch (error) {
-      console.warn("AI service unavailable; using development fallback:", error.message);
-    }
+  const base = serviceBase();
+  if (!base) throw new Error("AI_SERVICE_URL is not configured");
+
+  console.info("[AI] Sending image to AI service");
+  try {
+    const form = new FormData();
+    form.append("image", createReadStream(filePath));
+    const timeout = Number(process.env.AI_SERVICE_TIMEOUT || 30000);
+    const { data } = await axios.post(`${base}/predict`, form, {
+      headers: form.getHeaders(),
+      timeout: Number.isFinite(timeout) && timeout > 0 ? timeout : 30000,
+    });
+    const prediction = normalizePrediction(data);
+    console.info("[AI] AI service response received");
+    console.info(`[AI] Classification: ${prediction.rawClass}`);
+    console.info(`[AI] Confidence: ${prediction.confidence}%`);
+    return prediction;
+  } catch (error) {
+    console.error("[AI] Classification service unavailable:", error.message);
+    throw new Error("AI classification service unavailable", { cause: error });
   }
-  const categories = Object.values(categoryMap);
-  return {
-    category: categories[randomInt(categories.length)],
-    confidence: randomInt(65, 91),
-    rawClass: "mock",
-    source: "mock",
-  };
 }
 
 export async function serviceStatus() {
-  if (!process.env.AI_SERVICE_URL) return { available: false, mode: "mock" };
+  const base = serviceBase();
+  if (!base) return { available: false, mode: "unconfigured" };
   try {
-    await axios.get(`${process.env.AI_SERVICE_URL.replace(/\/$/, "")}/health`, { timeout: 3000 });
-    return { available: true, mode: "external" };
+    const { data } = await axios.get(`${base}/health`, { timeout: 3000 });
+    const available = data?.status === "ok";
+    return { available, mode: available ? "external" : "unavailable" };
   } catch {
-    return { available: false, mode: "mock" };
+    return { available: false, mode: "unavailable" };
   }
 }
